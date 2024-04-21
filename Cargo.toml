@@ -1,0 +1,15 @@
+[package]
+name = "kyawthuite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wgpu = { version = "0.19.4", features = [
+    "dx12",
+    "metal",
+    "webgpu",
+    "angle",
+    "vulkan-portability",
+    "webgl",
+    "wgsl",
+] }
