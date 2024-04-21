@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
 
 use cfg_if::cfg_if;
 use wgpu::Color;
@@ -8,7 +8,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use crate::renderer::State;
@@ -38,7 +38,7 @@ impl Default for Engine {
                 g: 0.02,
                 b: 0.02,
                 a: 1.0,
-            }.into()
+            },
         }
     }
 }
@@ -54,7 +54,9 @@ pub fn get_version_string() -> String {
 
 pub fn get_engine_mut() -> &'static mut Engine {
     if unsafe { ENGINE.is_none() } {
-        unsafe { ENGINE = Some(Engine::default()); }
+        unsafe {
+            ENGINE = Some(Engine::default());
+        }
     }
 
     // let mutex = ;
@@ -63,7 +65,9 @@ pub fn get_engine_mut() -> &'static mut Engine {
 
 pub fn get_engine() -> &'static Engine {
     if unsafe { ENGINE.is_none() } {
-        unsafe { ENGINE = Some(Engine::default()); }
+        unsafe {
+            ENGINE = Some(Engine::default());
+        }
     }
 
     // let mutex = ;
@@ -79,7 +83,7 @@ pub fn get_engine() -> &'static Engine {
 //     unsafe { ENGINE }
 // }
 
-#[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
 pub async fn init() {
     cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
@@ -94,7 +98,6 @@ pub async fn init() {
     let event_loop = EventLoop::new().unwrap();
     let mut window_orig = WindowBuilder::new().build(&event_loop).unwrap();
     let window = Arc::new(&mut window_orig);
-    let orig_window_id = window.id();
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -113,55 +116,56 @@ pub async fn init() {
             .expect("Couldn't append canvas to document body.");
     }
 
-    let mut state = State::new(window).await;
+    let mut state = State::new(&window).await;
 
     event_loop
-        .run(move |event, window_target| {
-            match event {
-                Event::WindowEvent {
-                    window_id,
-                    event: ref win_event,
-                } => {
-                    if state.input(win_event) {
-                        return;
-                    }
-
-                    match win_event {
-                        WindowEvent::Resized(new_size) => {
-                            state.resize(*new_size);
-                        }
-                        WindowEvent::ScaleFactorChanged { scale_factor, inner_size_writer: _ } => {
-                            state.resize_scale(*scale_factor);
-                        }
-                        WindowEvent::CloseRequested => {
-                            window_target.exit();
-                        }
-                        WindowEvent::RedrawRequested => {
-                            if window_id != state.get_window().id() {
-                                return;
-                            }
-
-                            state.update();
-
-                            match state.render() {
-                                Ok(_) => {}
-                                Err(wgpu::SurfaceError::Lost) => {
-                                    state.reconfigure();
-                                }
-                                Err(wgpu::SurfaceError::OutOfMemory) => {
-                                    window_target.exit();
-                                }
-                                Err(err) => eprintln!("{:?}", err),
-                            }
-                        }
-                        _ => {}
-                    }
+        .run(move |event, window_target| match event {
+            Event::WindowEvent {
+                window_id,
+                event: ref win_event,
+            } => {
+                if state.input(win_event) {
+                    return;
                 }
-                Event::AboutToWait => {
-                    state.get_window().request_redraw();
+
+                match win_event {
+                    WindowEvent::Resized(new_size) => {
+                        state.resize(*new_size);
+                    }
+                    WindowEvent::ScaleFactorChanged {
+                        scale_factor,
+                        inner_size_writer: _,
+                    } => {
+                        state.resize_scale(*scale_factor);
+                    }
+                    WindowEvent::CloseRequested => {
+                        window_target.exit();
+                    }
+                    WindowEvent::RedrawRequested => {
+                        if window_id != state.get_window().id() {
+                            return;
+                        }
+
+                        state.update();
+
+                        match state.render() {
+                            Ok(_) => {}
+                            Err(wgpu::SurfaceError::Lost) => {
+                                state.reconfigure();
+                            }
+                            Err(wgpu::SurfaceError::OutOfMemory) => {
+                                window_target.exit();
+                            }
+                            Err(err) => eprintln!("{:?}", err),
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
+            Event::AboutToWait => {
+                state.get_window().request_redraw();
+            }
+            _ => {}
         })
         .unwrap();
 }
