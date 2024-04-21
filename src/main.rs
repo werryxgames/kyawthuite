@@ -1,8 +1,8 @@
-pub mod node;
-pub mod renderer;
 pub mod editor;
 pub mod engine;
 pub mod logger;
+pub mod node;
+pub mod renderer;
 
 fn main() {
     logger::log::info!(
