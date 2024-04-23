@@ -15,6 +15,8 @@ use crate::renderer::State;
 
 pub struct Engine {
     clear_color: Color,
+    initialized: bool,
+    init_function: Option<fn() -> ()>,
 }
 
 impl Engine {
@@ -28,6 +30,26 @@ impl Engine {
         self.clear_color.b = b;
         self.clear_color.a = a;
     }
+
+    pub fn set_init_function(&mut self, new_function: fn() -> ()) {
+        self.init_function = Some(new_function);
+
+        if self.initialized {
+            new_function();
+        }
+    }
+
+    pub fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+
+    fn init(&self) {
+        assert!(!self.initialized);
+
+        if let Some(function) = self.init_function {
+            function();
+        }
+    }
 }
 
 impl Default for Engine {
@@ -39,6 +61,8 @@ impl Default for Engine {
                 b: 0.02,
                 a: 1.0,
             },
+            initialized: false,
+            init_function: None,
         }
     }
 }
@@ -84,7 +108,9 @@ pub fn get_engine() -> &'static Engine {
 // }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
-pub async fn init() {
+pub async fn init(function: fn() -> ()) {
+    get_engine_mut().set_init_function(function);
+
     cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -117,6 +143,7 @@ pub async fn init() {
     }
 
     let mut state = State::new(&window).await;
+    get_engine().init();
 
     event_loop
         .run(move |event, window_target| match event {

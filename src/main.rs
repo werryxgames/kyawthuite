@@ -1,5 +1,5 @@
-use kyawthuite::start;
+use kyawthuite::start_editor;
 
 fn main() {
-    start();
+    start_editor();
 }
